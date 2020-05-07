@@ -1,7 +1,14 @@
 from datetime import datetime, timedelta
 from tkinter.ttk import Frame, Button, Style, Label, Entry, Treeview, Checkbutton
-from tkinter import Tk, RIGHT, LEFT, BOTH, RAISED,NO,W,X, IntVar
+from tkinter import Tk, RIGHT, LEFT, TOP, BOTH, RAISED,NO,W,X, IntVar
 from moneyObserve import MoneyObserver, MoneySubject
+
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+# Implement the default Matplotlib key bindings.
+from matplotlib.backend_bases import key_press_handler
+from matplotlib.figure import Figure
+
+import numpy as np
 
 class DateDisplay(Frame) :
 
@@ -431,9 +438,52 @@ class TotalDisplay(Frame,MoneyObserver) :
     
     def updateText(self) :
         self.remainLbl["text"] = f"${(self.available-self.spent):.2f}"
-        if self.available != 0 :
+        if self.available > 0 :
             self.spentLbl["text"] = f"{self.spent/self.available*100:.0f}% spent"
             self.savedLbl["text"] = f"{(1-self.spent/self.available)*100:.0f}% saved"
         else :
             self.spentLbl["text"] = ""
             self.savedLbl["text"] = ""
+
+class MoneyGraph(Frame) :
+
+    def __init__(self, parent) :
+
+            super().__init__(parent)
+            self.initUI()
+    
+    def initUI(self) :
+        fig = Figure(figsize=(5, 4), dpi=100)
+        t = np.arange(0, 3, .01)
+        self.axes = fig.add_subplot(111)
+        #self.axes.plot(t, 2 * np.sin(2 * np.pi * t))
+
+        canvas = FigureCanvasTkAgg(fig, master=self)  # A tk.DrawingArea.
+        canvas.draw()
+        canvas.get_tk_widget().pack(side=TOP, fill=BOTH, expand=1)
+
+        self.pack()
+
+    def setData(self,data) :
+        
+        if len(data) != 0 :
+            data = sorted(data, key=lambda tup: tup[0])
+            dates = []
+            amounts = []
+            dates.append(data[0][0])
+            amounts.append(data[0][1])
+
+            for i in range(1,len(data)) :
+                dates.append(data[i][0])
+                amounts.append(data[i][1]+data[i-1][1])
+                
+            target = np.arange(50, 200*(len(data)+1)/4, 50)
+            self.axes.plot(dates,amounts,label="Savings")
+            self.axes.plot(dates,target,label="Target")
+            self.axes.legend()
+
+        self.axes.set_xlabel("Date")
+        self.axes.set_ylabel("Amount ($)")
+        
+        
+        

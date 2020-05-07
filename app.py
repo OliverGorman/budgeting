@@ -1,6 +1,6 @@
 from tkinter import Tk,Label, Button, Entry, Frame, LEFT, RIGHT
 from datetime import datetime
-from elements import IncomeEntry, DateDisplay, IncomeSummary, SubscriptionEntry, DebitList, DebitEntry, TotalDisplay
+from elements import IncomeEntry, DateDisplay, IncomeSummary, SubscriptionEntry, DebitList, DebitEntry, TotalDisplay, MoneyGraph
 from environment import MoneyIO, TimeManager
 
 class App(Tk) :
@@ -24,6 +24,7 @@ class App(Tk) :
         incomeSummary = IncomeSummary(rightFrame)
         debitList = DebitList(rightFrame)
         totalDisplay = TotalDisplay(rightFrame)
+        moneyGraph = MoneyGraph(rightFrame)
         rightFrame.pack(side=RIGHT)
 
         incomeEntry.attachObserver(incomeSummary)
@@ -37,6 +38,7 @@ class App(Tk) :
 
         timeManager = TimeManager()
         self.lastSunday = timeManager.getRecentWeekStart()
+        moneyGraph.setData(self.fileManager.getRecentRemainders(self.lastSunday, 5))
         dateDisplay.setStartDate(self.lastSunday)
         debitList.setStartDate(self.lastSunday)
         debitEntry.setStartDate(self.lastSunday)
