@@ -38,13 +38,13 @@ class App(Tk) :
 
         timeManager = TimeManager()
         self.lastSunday = timeManager.getRecentWeekStart()
-        moneyGraph.setData(self.fileManager.getRecentRemainders(self.lastSunday, 5))
         dateDisplay.setStartDate(self.lastSunday)
         debitList.setStartDate(self.lastSunday)
         debitEntry.setStartDate(self.lastSunday)
 
         for src in [(incomeEntry,"incomes"),(subscriptionEntry,"subscriptions"),(debitList,"debits")] :
             self.fileManager.setDataSource(src[0],src[1])
+        self.fileManager.setGraph(moneyGraph)
         self.fileManager.loadData(self.lastSunday)
 
     def mainloop(self) :

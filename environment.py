@@ -3,11 +3,13 @@ import os
 import json
 
 class MoneyIO() :
-    # TODO: change to specifying the type of each data source for more robust storage
     def __init__(self) :
 
         self.sources = {}
         self.dateFormat = "%Y%m%d"
+
+        if not os.path.exists("history") :
+            os.mkdir("history")
 
     def setDataSource(self, source, dataType) :
         self.sources[dataType] = source
@@ -19,13 +21,13 @@ class MoneyIO() :
         for name,source in self.sources.items() :
             jsonData[name] = source.export()
 
-        with open(f"{dateStr}.json","w") as f :
+        with open(f"history/{dateStr}.json","w") as f :
             json.dump(jsonData,f)
 
     def loadData(self, startDate) :
         
         dateStr = startDate.strftime(self.dateFormat)
-        path = f"{dateStr}.json"
+        path = f"history/{dateStr}.json"
         if not os.path.exists(path) :
             return
 
@@ -35,6 +37,11 @@ class MoneyIO() :
             data.pop("date")
             for key,value in data.items() :
                 self.sources[key].restore(value,startDate)
+        
+        self.graph.setData(self.getRecentRemainders(startDate, 5))
+    
+    def setGraph(self, graphOb) :
+        self.graph = graphOb
     
     def getRecentRemainders(self, startDate, numWeeks) :
 
@@ -42,13 +49,13 @@ class MoneyIO() :
 
         for w in range(numWeeks) :
             date = startDate-timedelta(weeks=w)
-            path = f"{date.strftime(self.dateFormat)}.json"
+            path = f"history/{date.strftime(self.dateFormat)}.json"
             if not os.path.exists(path) :
                 break
 
             with open(path,"r") as f :
                 data = json.load(f)
-                remainders.append(((date+timedelta(days=6)).strftime("%d/%m"), MoneyIO.getRemainder(data)))
+                remainders.append(( (date+timedelta(days=6)).strftime("%d/%m"), MoneyIO.getRemainder(data) ))
         
         return remainders
 

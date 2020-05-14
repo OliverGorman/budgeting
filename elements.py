@@ -475,12 +475,14 @@ class MoneyGraph(Frame) :
 
             for i in range(1,len(data)) :
                 dates.append(data[i][0])
-                amounts.append(data[i][1]+data[i-1][1])
+                amounts.append(data[i][1]+amounts[i-1])
                 
             target = np.arange(50, 200*(len(data)+1)/4, 50)
             self.axes.plot(dates,amounts,label="Savings")
             self.axes.plot(dates,target,label="Target")
             self.axes.legend()
+
+            self.axes.text(.5,.5,f"Difference to target: ${amounts[-1]-target[-1]:.2f}",transform=self.axes.transAxes)
 
         self.axes.set_xlabel("Date")
         self.axes.set_ylabel("Amount ($)")
