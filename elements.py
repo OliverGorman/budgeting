@@ -347,11 +347,11 @@ class DebitEntry(Frame,MoneySubject) :
         lbl.pack(side=LEFT)
 
         dateFrame = Frame(self,borderwidth=1)
-        lButton = Button(dateFrame,text="<-",command=self.backDay)
+        lButton = Button(dateFrame,text="<-",command=self.decrementDay)
         lButton.pack(side=LEFT)
         self.dateLbl = Label(dateFrame,text=self.date.strftime("%d/%m"),font=("Ubuntu",12))
         self.dateLbl.pack(side=LEFT)
-        rButton = Button(dateFrame,text="->",command=self.forwardDay)
+        rButton = Button(dateFrame,text="->",command=self.incrementDay)
         rButton.pack(side=LEFT)
         dateFrame.pack(fill=BOTH,expand=True)
 
@@ -372,13 +372,13 @@ class DebitEntry(Frame,MoneySubject) :
         entryFrame.pack(fill=BOTH,expand=True)
         self.pack(fill=BOTH, expand=False)
     
-    def backDay(self) :
+    def decrementDay(self) :
         
         if self.date - self.startDate >= timedelta(days=0) :
             self.date -= timedelta(days=1)
 
         self.dateLbl["text"] = self.date.strftime("%d/%m")
-    def forwardDay(self) :
+    def incrementDay(self) :
         
         if self.date - self.startDate <= timedelta(days=5) :
             self.date += timedelta(days=1)
@@ -454,9 +454,7 @@ class MoneyGraph(Frame) :
     
     def initUI(self) :
         fig = Figure(figsize=(5, 4), dpi=100)
-        t = np.arange(0, 3, .01)
         self.axes = fig.add_subplot(111)
-        #self.axes.plot(t, 2 * np.sin(2 * np.pi * t))
 
         canvas = FigureCanvasTkAgg(fig, master=self)  # A tk.DrawingArea.
         canvas.draw()
@@ -465,9 +463,10 @@ class MoneyGraph(Frame) :
         self.pack()
 
     def setData(self,data) :
-        
+        ''' data is a list of tuples of (date string, money float) '''
+
         if len(data) != 0 :
-            data = sorted(data, key=lambda tup: tup[0])
+            #data = sorted(data, key=lambda tup: tup[0])
             dates = []
             amounts = []
             dates.append(data[0][0])
@@ -476,13 +475,17 @@ class MoneyGraph(Frame) :
             for i in range(1,len(data)) :
                 dates.append(data[i][0])
                 amounts.append(data[i][1]+amounts[i-1])
-                
-            target = np.arange(50, 200*(len(data)+1)/4, 50)
+            
+            weeks = np.arange(len(dates))
+            fit = np.polyfit(weeks, amounts, 1)
+            #perMonth = 500
+            #target = np.arange(perMonth/4, 2*perMonth+1, perMonth/4)
             self.axes.plot(dates,amounts,label="Savings")
-            self.axes.plot(dates,target,label="Target")
+            self.axes.plot(dates, weeks*fit[0]+fit[1], label="Fit")
+            #self.axes.plot(dates,target,label="Target")
             self.axes.legend()
 
-            self.axes.text(.5,.5,f"Difference to target: ${amounts[-1]-target[-1]:.2f}",transform=self.axes.transAxes)
+            self.axes.text(.5,.5,f"Avg. savings: ${fit[0]:.2f}p/w",transform=self.axes.transAxes)
 
         self.axes.set_xlabel("Date")
         self.axes.set_ylabel("Amount ($)")

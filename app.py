@@ -44,12 +44,14 @@ class App(Tk) :
 
         for src in [(incomeEntry,"incomes"),(subscriptionEntry,"subscriptions"),(debitList,"debits")] :
             self.fileManager.setDataSource(src[0],src[1])
+            
         self.fileManager.setGraph(moneyGraph)
         self.fileManager.loadData(self.lastSunday)
 
     def mainloop(self) :
         super().mainloop()
         self.fileManager.saveData(self.lastSunday)
+
 def main() :
     app = App()
     app.title("Budget")

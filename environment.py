@@ -38,7 +38,7 @@ class MoneyIO() :
             for key,value in data.items() :
                 self.sources[key].restore(value,startDate)
         
-        self.graph.setData(self.getRecentRemainders(startDate, 5))
+        self.graph.setData(self.getRecentRemainders(startDate, 8))
     
     def setGraph(self, graphOb) :
         self.graph = graphOb
@@ -47,9 +47,10 @@ class MoneyIO() :
 
         remainders = []
 
-        for w in range(numWeeks) :
+        for w in range(numWeeks, 0, -1) :
             date = startDate-timedelta(weeks=w)
             path = f"history/{date.strftime(self.dateFormat)}.json"
+
             if not os.path.exists(path) :
                 break
 
