@@ -7,15 +7,21 @@ class MoneyIO() :
 
         self.sources = {}
         self.dateFormat = "%Y%m%d"
+        self.currentStartDate = None
 
         if not os.path.exists("history") :
             os.mkdir("history")
 
     def setDataSource(self, source, dataType) :
+        ''' source: object with export() (to json) method, such as a UI element.
+            datatype: "subscriptions", "incomes" or "debits" 
+            Note that there should only be one of each type.'''
         self.sources[dataType] = source
 
-    def saveData(self, startDate) :
-        dateStr = startDate.strftime(self.dateFormat)
+    def saveData(self) :
+        ''' save data from all sources under the current date '''
+
+        dateStr = self.currentStartDate.strftime(self.dateFormat)
         jsonData = {"date": dateStr}
         
         for name,source in self.sources.items() :
@@ -26,6 +32,8 @@ class MoneyIO() :
 
     def loadData(self, startDate) :
         
+        self.currentStartDate = startDate
+
         dateStr = startDate.strftime(self.dateFormat)
         path = f"history/{dateStr}.json"
         if not os.path.exists(path) :
@@ -38,29 +46,32 @@ class MoneyIO() :
             for key,value in data.items() :
                 self.sources[key].restore(value,startDate)
         
-        self.graph.setData(self.getRecentRemainders(startDate, 8))
+        self.graph.setData(self.getRecentRemainders(8))
     
     def setGraph(self, graphOb) :
         self.graph = graphOb
     
-    def getRecentRemainders(self, startDate, numWeeks) :
+    def getRecentRemainders(self, numWeeks) :
+        ''' get the most recent numWeeks savings amounts '''
 
         remainders = []
 
         for w in range(numWeeks, 0, -1) :
-            date = startDate-timedelta(weeks=w)
+            date = self.currentStartDate-timedelta(weeks=w)
             path = f"history/{date.strftime(self.dateFormat)}.json"
 
             if not os.path.exists(path) :
+                # run out of previous weeks
                 break
 
             with open(path,"r") as f :
                 data = json.load(f)
-                remainders.append(( (date+timedelta(days=6)).strftime("%d/%m"), MoneyIO.getRemainder(data) ))
+                remainders.append(( (date+timedelta(days=6)).strftime("%d/%m"), MoneyIO.GetRemainder(data) ))
         
         return remainders
 
-    def getRemainder(data) :
+    @classmethod
+    def GetRemainder(cls, data) :
 
         total = 0
         for i in data["incomes"] :
@@ -77,4 +88,4 @@ class TimeManager() :
         pass
 
     def getRecentWeekStart(self) :
-        return datetime.now()-timedelta(datetime.now().weekday())
+        return datetime.now()-timedelta(days=datetime.now().weekday())
