@@ -22,7 +22,7 @@ class MoneyIO() :
             jsonData[name] = source.export()
 
         with open(f"history/{dateStr}.json","w") as f :
-            json.dump(jsonData,f)
+            json.dump(jsonData,f,separators=(',', ':'))
 
     def loadData(self, startDate) :
         

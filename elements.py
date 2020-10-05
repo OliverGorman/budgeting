@@ -171,7 +171,7 @@ class SubscriptionEntry(Frame,MoneySubject) :
         titlelbl.pack(side=LEFT)
 
         self.record = {}
-        self.subs = {"Spotify":(1.5,None),"Phone":(5,None),"Dreamhost":(4.7,None)}
+        self.subs = {"Spotify":(1.5,None),"Phone":(5,None),"Dreamhost":(4.7,None), "Rent":(190, None)}
         for key in self.subs :
             self.record[key] = 0
         
