@@ -31,7 +31,9 @@ class MoneyIO() :
             json.dump(jsonData,f)
 
     def loadData(self, startDate) :
-        
+        '''load data from file and insert into data sources'''
+
+        self.graph.setData(self.getRecentRemainders(8))
         self.currentStartDate = startDate
 
         dateStr = startDate.strftime(self.dateFormat)
@@ -46,8 +48,6 @@ class MoneyIO() :
             for key,value in data.items() :
                 self.sources[key].restore(value,startDate)
         
-        self.graph.setData(self.getRecentRemainders(8))
-    
     def setGraph(self, graphOb) :
         self.graph = graphOb
     
@@ -70,9 +70,15 @@ class MoneyIO() :
         
         return remainders
 
+    def getFiles(self) :
+        files = []
+        for f in os.listdir("history") :
+            if f[-5:] == ".json" and len(f) == len("YYYYMMDD.json") :
+                files.append(f[:-5])
+
     @classmethod
     def GetRemainder(cls, data) :
-
+        '''calculate the remaining money as incomes - subscriptions - debits'''
         total = 0
         for i in data["incomes"] :
             total += i["hours"]*i["rate"]
@@ -84,7 +90,7 @@ class MoneyIO() :
         return total
 class TimeManager() :
     
-    def __init(self) :
+    def __init__(self) :
         pass
 
     def getRecentWeekStart(self) :
