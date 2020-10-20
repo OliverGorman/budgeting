@@ -33,8 +33,8 @@ class MoneyIO() :
     def loadData(self, startDate) :
         '''load data from file and insert into data sources'''
 
-        self.graph.setData(self.getRecentRemainders(8))
         self.currentStartDate = startDate
+        self.graph.setData(self.getRecentRemainders(8))
 
         dateStr = startDate.strftime(self.dateFormat)
         path = f"history/{dateStr}.json"
