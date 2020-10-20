@@ -1,6 +1,11 @@
 class MoneyObserver() :
 
     def moneyUpdate(self, monies) :
+        ''' provide a money delta '''
+        pass
+
+    def reset(self) :
+        ''' clear data '''
         pass
 
 class MoneySubject() :

@@ -59,10 +59,9 @@ class MoneyIO() :
         for w in range(numWeeks, 0, -1) :
             date = self.currentStartDate-timedelta(weeks=w)
             path = f"history/{date.strftime(self.dateFormat)}.json"
-
             if not os.path.exists(path) :
-                # run out of previous weeks
-                break
+                # don't have data back this far
+                continue
 
             with open(path,"r") as f :
                 data = json.load(f)
@@ -70,11 +69,13 @@ class MoneyIO() :
         
         return remainders
 
-    def getFiles(self) :
-        files = []
+    def getFileDates(self) :
+        dates = []
         for f in os.listdir("history") :
             if f[-5:] == ".json" and len(f) == len("YYYYMMDD.json") :
-                files.append(f[:-5])
+                dates.append(datetime.strptime(f[:-5], self.dateFormat))
+        
+        return sorted(dates)
 
     @classmethod
     def GetRemainder(cls, data) :

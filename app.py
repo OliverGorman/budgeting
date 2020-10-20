@@ -1,6 +1,6 @@
 from tkinter import Tk,Label, Button, Entry, Frame, LEFT, RIGHT
 from datetime import datetime
-from elements import IncomeEntry, DateDisplay, IncomeSummary, SubscriptionEntry, DebitList, DebitEntry, TotalDisplay, MoneyGraph
+from elements import IncomeEntry, DateDisplay, IncomeSummary, SubscriptionEntry, DebitList, DebitEntry, TotalDisplay, MoneyGraph, DateMenu
 from environment import MoneyIO, TimeManager
 
 class App(Tk) :
@@ -15,37 +15,38 @@ class App(Tk) :
 
         # pack left-hand controls
         leftFrame = Frame(self, borderwidth=1)
-        dateDisplay = DateDisplay(leftFrame)
+        menuBar = DateMenu(leftFrame, self)
+        self.dateDisplay = DateDisplay(leftFrame)
         incomeEntry = IncomeEntry(leftFrame)
         subscriptionEntry = SubscriptionEntry(leftFrame)
-        debitEntry = DebitEntry(leftFrame)
+        self.debitEntry = DebitEntry(leftFrame)
         leftFrame.pack(side=LEFT)
 
         # pack right-hand controls
         rightFrame = Frame(self,borderwidth=1)
-        incomeSummary = IncomeSummary(rightFrame)
+        self.incomeSummary = IncomeSummary(rightFrame)
         debitList = DebitList(rightFrame)
-        totalDisplay = TotalDisplay(rightFrame)
+        self.totalDisplay = TotalDisplay(rightFrame)
         moneyGraph = MoneyGraph(rightFrame)
         rightFrame.pack(side=RIGHT)
 
         # attach income summary and debit list observers
-        incomeEntry.attachObserver(incomeSummary)
-        subscriptionEntry.attachObserver(incomeSummary)
-        debitEntry.attachObserver(debitList)
+        incomeEntry.attachObserver(self.incomeSummary)
+        subscriptionEntry.attachObserver(self.incomeSummary)
+        self.debitEntry.attachObserver(debitList)
 
         # attach totals display observer to subjects
-        incomeEntry.attachObserver(totalDisplay)
-        subscriptionEntry.attachObserver(totalDisplay)
-        debitEntry.attachObserver(totalDisplay)
-        debitList.attachObserver(totalDisplay)
+        incomeEntry.attachObserver(self.totalDisplay)
+        subscriptionEntry.attachObserver(self.totalDisplay)
+        self.debitEntry.attachObserver(self.totalDisplay)
+        debitList.attachObserver(self.totalDisplay)
 
         # set date
         timeManager = TimeManager()
         self.lastSunday = timeManager.getRecentWeekStart()
-        dateDisplay.setStartDate(self.lastSunday)
+        self.dateDisplay.setStartDate(self.lastSunday)
         debitList.setStartDate(self.lastSunday)
-        debitEntry.setStartDate(self.lastSunday)
+        self.debitEntry.setStartDate(self.lastSunday)
 
         # set data sources for file manager
         for src in [(incomeEntry,"incomes"),(subscriptionEntry,"subscriptions"),(debitList,"debits")] :
@@ -53,7 +54,19 @@ class App(Tk) :
 
         self.fileManager.setGraph(moneyGraph)
         self.fileManager.loadData(self.lastSunday)
-
+    
+    def getStartDates(self) :
+        return self.fileManager.getFileDates()
+    
+    def setStartDate(self, startDate) :
+        ''' change the start date of everything '''
+        self.fileManager.saveData()
+        self.dateDisplay.setStartDate(startDate)
+        self.totalDisplay.reset()
+        self.debitEntry.setStartDate(startDate)
+        self.incomeSummary.reset()
+        self.fileManager.loadData(startDate)
+        
     def mainloop(self) :
         # peform work
         super().mainloop()

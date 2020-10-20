@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from tkinter.ttk import Frame, Button, Style, Label, Entry, Treeview, Checkbutton
-from tkinter import Tk, RIGHT, LEFT, TOP, BOTH, RAISED,NO,W,X, IntVar
+from tkinter import Tk, Menu, RIGHT, LEFT, TOP, BOTH, RAISED,NO,W,X, IntVar
 from moneyObserve import MoneyObserver, MoneySubject
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
@@ -9,6 +9,7 @@ from matplotlib.backend_bases import key_press_handler
 from matplotlib.figure import Figure
 
 import numpy as np
+from functools import partial
 
 class DateDisplay(Frame) :
 
@@ -33,7 +34,7 @@ class DateDisplay(Frame) :
     def setStartDate(self, date) :
 
         self.l1["text"] = date.strftime("%d/%m")
-        self.l2["text"] = (date+timedelta(days=6)).strftime("%d/%m")
+        self.l2["text"] = (date+timedelta(days=6)).strftime("%d/%m/%y")
 
 class IncomeEntry(Frame, MoneySubject) :
 
@@ -116,8 +117,6 @@ class IncomeEntry(Frame, MoneySubject) :
         
         for child in self.incomeList.get_children() :
             self.incomeList.delete(child)
-        for income in self.records :
-            self.moneyNotify({"income":-income["hours"]*income["rate"]})
         
         self.records = []
 
@@ -128,7 +127,6 @@ class IncomeEntry(Frame, MoneySubject) :
         self.clear()
         for income in incomes :
             self._emitIncome(income["hours"],income["rate"],income["desc"])
-
 
 class IncomeSummary(Frame,MoneyObserver) :
 
@@ -152,8 +150,16 @@ class IncomeSummary(Frame,MoneyObserver) :
     def moneyUpdate(self, monies) :
         self.income += monies.get("income", 0)
         self.subscription += monies.get("subscription", 0)
+        self.updateText()
+    
+    def updateText(self) :
         self.incomelbl["text"] = f"Income: ${self.income:.2f}"
         self.availlbl["text"] = f"Available: ${self.income-self.subscription:.2f}"
+    
+    def reset(self) :
+        self.income = 0
+        self.subscription = 0
+        self.updateText()
 
 class SubscriptionEntry(Frame,MoneySubject) :
 
@@ -235,8 +241,6 @@ class SubscriptionEntry(Frame,MoneySubject) :
     def restore(self, subs, startDate) :
         self.subs = {}
         self.record = {}
-        for key in self.subs :
-            self.moneyNotify({"subscription": self.record[key]})
         self._destroyList()
         for key, data in subs.items() :
             self.subs[key] = (data[0], None)
@@ -284,10 +288,7 @@ class DebitList(Frame,MoneySubject,MoneyObserver) :
             self.debitList.delete(item)
             self.records.remove({"debit":amount,"desc":str(values[1]),"date":parent})
 
-    def clear(self) :
-        for debit in self.records :
-            debit["debit"] *= -1
-            self.moneyNotify(debit)
+    def reset(self) :
         self.records = []
         for child in self.debitList.get_children() :
             self.debitList.delete(child)
@@ -298,7 +299,7 @@ class DebitList(Frame,MoneySubject,MoneyObserver) :
 
     def restore(self,debits, startDate) :
 
-        self.clear()
+        self.reset()
         self.setStartDate(startDate)
         dateTable = {}
         for d in range(7) :
@@ -349,7 +350,7 @@ class DebitEntry(Frame,MoneySubject) :
         dateFrame = Frame(self,borderwidth=1)
         lButton = Button(dateFrame,text="<-",command=self.decrementDay)
         lButton.pack(side=LEFT)
-        self.dateLbl = Label(dateFrame,text=self.date.strftime("%d/%m"),font=("Ubuntu",12))
+        self.dateLbl = Label(dateFrame,text="",font=("Ubuntu",12))
         self.dateLbl.pack(side=LEFT)
         rButton = Button(dateFrame,text="->",command=self.incrementDay)
         rButton.pack(side=LEFT)
@@ -387,6 +388,10 @@ class DebitEntry(Frame,MoneySubject) :
     
     def setStartDate(self, startDate) :
         self.startDate = startDate
+        if self.date - startDate > timedelta(days=7) :
+            self.date = startDate
+        else :
+            self.date = datetime.now()
         self.dateLbl["text"] = self.date.strftime("%d/%m")
 
     def submitDebit(self) :
@@ -444,7 +449,11 @@ class TotalDisplay(Frame,MoneyObserver) :
         else :
             self.spentLbl["text"] = ""
             self.savedLbl["text"] = ""
-
+    
+    def reset(self) :
+        self.spent = 0
+        self.available = 0
+        self.updateText()
 class MoneyGraph(Frame) :
 
     def __init__(self, parent) :
@@ -456,16 +465,16 @@ class MoneyGraph(Frame) :
         fig = Figure(figsize=(5, 4), dpi=100)
         self.axes = fig.add_subplot(111)
 
-        canvas = FigureCanvasTkAgg(fig, master=self)  # A tk.DrawingArea.
-        canvas.draw()
-        canvas.get_tk_widget().pack(side=TOP, fill=BOTH, expand=1)
+        self.canvas = FigureCanvasTkAgg(fig, master=self)  # A tk.DrawingArea.
+        self.canvas.get_tk_widget().pack(side=TOP, fill=BOTH, expand=1)
 
         self.pack()
 
     def setData(self,data) :
         ''' data is a list of tuples of (date string, money float) '''
 
-        if len(data) != 0 :
+        self.axes.clear()
+        if len(data) > 1 :
             #data = sorted(data, key=lambda tup: tup[0])
             dates = []
             amounts = []
@@ -481,7 +490,7 @@ class MoneyGraph(Frame) :
             #perMonth = 500
             #target = np.arange(perMonth/4, 2*perMonth+1, perMonth/4)
             self.axes.plot(dates,amounts,label="Savings")
-            self.axes.plot(dates, weeks*fit[0]+fit[1], label="Fit")
+            self.axes.plot(dates, weeks*fit[0]+fit[1], label="Trend")
             #self.axes.plot(dates,target,label="Target")
             self.axes.legend()
 
@@ -489,6 +498,30 @@ class MoneyGraph(Frame) :
 
         self.axes.set_xlabel("Date")
         self.axes.set_ylabel("Amount ($)")
+        self.axes.grid()
+        self.canvas.draw()
+
+class DateMenu(Frame) :
+
+    def __init__(self, parent, app) :
+        super().__init__(parent)
+        self.app = app
+        self.initUI()
+
+    def initUI(self) :
+
+        self.menuBtn = Button(self, text="Open previous", command=self.openMenu)
+        self.menuBtn.pack()
+        self.pack()
+    
+    def openMenu(self) :
+        dates = self.app.getStartDates()
+        popup = Menu(self.app, tearoff=0)
+        for date in dates :
+            dateStr = date.strftime("%d/%m/%y")
+            popup.add_command(label=dateStr, command=partial(self.setDate,date))
         
-        
-        
+        popup.tk_popup(self.app.winfo_rootx(), self.app.winfo_rooty())
+    
+    def setDate(self, date) :
+        self.app.setStartDate(date)
